@@ -1,0 +1,405 @@
+/* admin.css - matches GoBus theme (colors, shapes, modal style) */
+:root{
+  --primary:#2b9cff;
+  --accent:#ffd400;
+  --muted:#6b7280;
+  --card:#ffffff;
+  --bg:#f4fbff;
+  --shadow: 0 20px 50px rgba(16,24,40,0.08);
+  --border: #eef2f7;
+}
+
+.login-wrap {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:100vh; /* Full height now */
+    }
+    .login-card {
+      width:100%;
+      max-width:420px;
+      padding:24px;
+      border-radius:16px;
+      background:#ffffff;
+      box-shadow:var(--shadow);
+    }
+    .login-card h2 {
+      margin:0 0 8px;
+      font-weight:800;
+    }
+    .login-sub {
+      color:var(--muted);
+      margin-bottom:12px;
+    }
+    .row { 
+      display:flex; 
+      gap:8px; 
+      margin-top:12px 
+    }
+
+/* base */
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:#0f172a}
+
+/* top header */
+.header {
+  height:64px;
+  background:#ffeb54;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  border-bottom:1px solid rgba(16,24,40,0.04);
+  z-index:30;
+  box-shadow:0 2px 6px rgba(16,24,40,0.02);
+  position: sticky;
+top: 0;
+z-index: 999;
+
+}
+.brand { font-weight:800; color:var(--accent); font-size:20px; }
+
+/* layout */
+.admin-wrap { display:flex; min-height:calc(100vh - 64px); }
+.sidebar {
+  width:220px;
+  background: #fff;
+  border-right:1px solid rgba(16,24,40,0.04);
+  padding:18px 12px;
+  box-shadow: 0 6px 20px rgba(16,24,40,0.02);
+}
+.sidebar .item { display:flex;align-items:center;padding:10px 12px;border-radius:10px;color:#0f172a;text-decoration:none;margin-bottom:6px;cursor:pointer }
+.sidebar .item.active, .sidebar .item:hover { background: #f0f8ff; color:var(--primary) }
+.sidebar .item i { width:22px; text-align:center; margin-right:10px; color:var(--muted) }
+
+.content {
+  flex:1;
+  padding:22px;
+  max-width:1200px;
+  margin:0 auto;
+}
+
+/* card */
+.card {
+  background:var(--card);
+  border-radius:12px;
+  padding:16px;
+  box-shadow:var(--shadow);
+  border:1px solid var(--border);
+  margin-bottom:16px;
+}
+
+/* forms */
+label { display:block; font-size:13px; color:var(--muted); margin-bottom:8px }
+input[type="text"], input[type="date"], input[type="time"], input[type="number"], input[type="password"], select {
+  width:100%; padding:10px;border-radius:10px;border:1px solid var(--border);
+  background:#fff; font-size:14px;
+}
+.small { width:140px; display:inline-block; }
+
+/* buttons */
+.btn { padding:10px 12px;border-radius:10px;border:0;cursor:pointer;font-weight:700; }
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-ghost { background:transparent;border:1px solid var(--border); color:#111; }
+.btn-danger { background:#ff5757;color:#fff; }
+
+/* times pills */
+.times-list{display:flex;gap:8px;flex-wrap:wrap}
+.time-pill{background:#f8fbff;border:1px solid #e6f3ff;padding:8px 10px;border-radius:8px;display:flex;gap:8px;align-items:center}
+
+/* schedule listing */
+.sched-list { display:flex;flex-direction:column;gap:10px;margin-top:12px }
+.sched-row { display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;border:1px solid var(--border);background:#fbfdff;}
+
+/* legend */
+.legend { display:flex;gap:18px;align-items:center;margin-top:12px }
+.legend .box{width:16px;height:10px;border-radius:3px;display:inline-block;margin-right:8px}
+.legend .available{background:#d8effd}
+.legend .booked{background:#7dc1f8}
+.legend .selected{background:#008cff}
+
+/* table simple */
+.table { width:100%; border-collapse:collapse; margin-top:10px }
+.table th, .table td { text-align:left; padding:10px; border-bottom:1px solid #f1f5f9 }
+
+/* modal (centered) - matches user style */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(6,12,20,0.45); display:none; align-items:center; justify-content:center; z-index:100;
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  width:100%; max-width:720px; background:var(--card); border-radius:20px; padding:18px; box-shadow:0 30px 80px rgba(16,24,40,0.2);
+  max-height:calc(100vh - 80px); overflow:auto;
+}
+.modal .modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px }
+.modal .modal-header h3{margin:0}
+.modal .close { background:transparent;border:0;font-size:20px;cursor:pointer }
+
+/* make sidebar fixed so it stays visible when scrolling */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 64px;               /* header height */
+  bottom: 0;
+  width: 220px;
+  overflow:auto;
+  padding:18px 12px;
+}
+
+/* make content area offset from fixed sidebar */
+.content {
+  margin-left: 50px; /* match sidebar width + gap */
+}
+
+/* small responsive tweak if sidebar hidden */
+@media(max-width:900px){
+  .content { margin-left: 0; padding:14px; }
+}
+
+/* button active state for set-days */
+.btn-day-active {
+  background: var(--accent);
+  color: #111;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+/* make sidebar sticky and scrollable */
+.sidebar {
+  position: sticky;
+  top: 64px; /* header height */
+  height: calc(100vh - 64px);
+  overflow: auto;
+}
+
+/* active state for quick-set buttons */
+.btn.active, .btn.active:hover {
+  background: #2b9cff;
+  color: #fff;
+  border-color: transparent;
+}
+/* ===========================
+   RESERVATIONS TABLE (Admin)
+   =========================== */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+
+.table th {
+  background: #f3f4f6;
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  color: #333;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.table td {
+  padding: 14px;
+  font-size: 14px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+.table th,
+.table td {
+  vertical-align: middle;
+}
+
+/* Hover highlight on rows */
+.table tr:hover {
+  background: #e9e9e4;
+  cursor: pointer;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Make the entire row clickable */
+.res-click-row {
+  transition: background 0.15s ease;
+}
+
+/* ================
+   STATUS TEXT ONLY
+   ================ */
+.status-txt-pending {
+  color: #1c6df6;
+  font-weight: 800;
+}
+
+.status-txt-confirmed {
+  color: #07960a;
+  font-weight: 800;
+}
+
+.status-txt-cancelled {
+  color: #d60000;
+  font-weight: 800;
+}
+
+/* ==================
+   ACTION BUTTON STYLES
+   ================== */
+
+/* Cancel button (Admin - PENDING ONLY) */
+.btn-cancel-admin {
+  background: #ff4d4d;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  transition: 0.15s ease;
+}
+
+.btn-cancel-admin:hover {
+  background: #e60000;
+  transform: translateY(-2px);
+}
+
+/* View button (Confirmed / Cancelled) */
+.btn-view-details {
+  background: #e5e7eb;
+  color: #333;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  border: none;
+  transition: 0.15s ease;
+}
+
+.btn-view-details:hover {
+  background: #d5d6d8;
+}
+
+/* Center action for confirmed/cancelled */
+.center-actions {
+  display: flex;
+  justify-content: center;
+}
+
+/* Pending actions (left-aligned) */
+.pending-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+/* No-action placeholder */
+.no-action {
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+/* ======================
+   RESERVATION VIEW MODAL
+   ====================== */
+#adminReservationModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+#adminReservationModal.open {
+  display: flex;
+}
+
+.admin-modal-box {
+  width: 450px;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  animation: fadeIn 0.2s ease;
+}
+
+.admin-modal-box h2 {
+  margin-top: 0;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.admin-modal-box p {
+  margin: 6px 0;
+  font-size: 14px;
+}
+
+.admin-modal-close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  float: right;
+  margin-top: -10px;
+  margin-right: -5px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* realtime validation styles */
+.input-invalid {
+  border-color: #ff4d4d !important;
+  box-shadow: 0 0 0 4px rgba(255,77,77,0.06);
+}
+.error-text {
+  color: #cc2d2d;
+  font-size: 12px;
+  margin-top: 6px;
+  height: 16px;
+}
+
+/* small tweak: ensure error divs align under inputs */
+input + .error-text, textarea + .error-text {
+  display: block;
+}
+
+/* small profile avatar / name in navbar */
+.profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.profile .avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  box-shadow: 0 6px 18px rgba(43, 156, 255, 0.18);
+  font-size: 14px;
+}
+.profile .profile-name {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 110px;
+}
+
+/* ensure profile buttons blend with navbar */
+.navbar-action { display:flex; gap:8px; align-items:center; }
