@@ -2,7 +2,7 @@
 set -e
 
 # Navigate to Laravel root
-cd /database/migrations
+php /var/www/html/artisan migrate --force
 
 echo "Running migrations in sequence..."
 
