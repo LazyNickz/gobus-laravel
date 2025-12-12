@@ -23,10 +23,10 @@ COPY deploy/nginx.conf /etc/nginx/nginx.conf
 COPY deploy/supervisor.conf /etc/supervisor/conf.d/supervisor.conf
 
 
-COPY start-container.sh /start-container.sh
-RUN chmod +x /start-container.sh
-CMD ["/start-container.sh"]
+
 
 EXPOSE 80
 
 CMD ["supervisord", "-n"]
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
