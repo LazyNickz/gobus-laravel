@@ -22,6 +22,13 @@ COPY deploy/nginx.conf /etc/nginx/nginx.conf
 # Supervisor config
 COPY deploy/supervisor.conf /etc/supervisor/conf.d/supervisor.conf
 
+
+# Install PHP dependencies
+RUN composer install --optimize-autoloader --no-dev --no-interaction
+
+# Run database migrations (force for production)
+RUN php artisan migrate --force
+
 EXPOSE 80
 
 CMD ["supervisord", "-n"]
