@@ -17,6 +17,8 @@ class AdminAuthController extends Controller
         $r->session()->put('gobus_admin_logged', true);
         $r->session()->put('gobus_admin_email', $admin->email);
         $r->session()->put('gobus_admin_name', $admin->name ?? $admin->email);
+
+        // FIX: Make sure this is the correct redirect!
         return redirect('/admin/schedules');
     }
 

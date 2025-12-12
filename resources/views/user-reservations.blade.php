@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GoBus — Book Your Trip</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <!-- added: shared app/admin styles for consistent color scheme -->
     <link rel="stylesheet" href="{{ url('frontend/admin.css') }}">
 </head>
 <body class="bg-gray-100 font-sans">
@@ -52,40 +51,38 @@
 
         <!-- BOOKING CARD -->
         <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 w-11/12 max-w-4xl z-30">
-            <!-- use shared .card to match admin UI -->
             <div class="card">
-                <form class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- POST to /search to preserve inputs -->
+                <form action="/search" method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    @csrf
 
                     <!-- FROM -->
                     <div>
                         <label class="block text-gray-700 font-semibold mb-1">From</label>
-                        <select class="w-full p-3 border rounded-lg">
-                            <option>Manila</option>
-                            <option>Cebu</option>
-                            <option>Davao</option>
+                        <select id="origin-select" name="origin" class="w-full p-3 border rounded-lg">
+                            <option value="Manila">Manila</option>
+                            <option value="Cebu">Cebu</option>
+                            <option value="Davao">Davao</option>
                         </select>
                     </div>
 
-                    <!-- TO -->
+                    <!-- TO (populated dynamically) -->
                     <div>
                         <label class="block text-gray-700 font-semibold mb-1">To</label>
-                        <select class="w-full p-3 border rounded-lg">
-                            <option>Iloilo</option>
-                            <option>Bacolod</option>
-                            <option>Cagayan de Oro</option>
+                        <select id="destination-select" name="destination" class="w-full p-3 border rounded-lg">
+                            <!-- options inserted by JS -->
                         </select>
                     </div>
 
                     <!-- DEPART -->
                     <div>
                         <label class="block text-gray-700 font-semibold mb-1">Depart</label>
-                        <input type="date" class="w-full p-3 border rounded-lg" />
+                        <input type="date" class="w-full p-3 border rounded-lg" name="depart_date" />
                     </div>
 
                     <!-- BUTTON -->
                     <div class="flex items-end">
-                        <!-- use shared button class -->
-                        <button class="btn btn-primary w-full">Search Buses</button>
+                        <button class="btn btn-primary w-full" type="submit">Search Buses</button>
                     </div>
                 </form>
             </div>
@@ -121,6 +118,50 @@
       }catch(e){}
     </script>
     @endif
+
+    <!-- dynamic origin->destination script -->
+    <script>
+    (function () {
+        const map = {
+            "Cebu": ["Bacolod", "Dumaguete"],
+            "Manila": ["Batangas", "Baguio"],
+            "Davao": ["Cagayan de Oro"]
+        };
+
+        const originSelect = document.getElementById('origin-select');
+        const destSelect = document.getElementById('destination-select');
+
+        function populateDestinations(origin) {
+            while (destSelect.firstChild) destSelect.removeChild(destSelect.firstChild);
+            const choices = map[origin] || [];
+            if (choices.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.textContent = "No destinations";
+                opt.disabled = true;
+                opt.selected = true;
+                destSelect.appendChild(opt);
+                return;
+            }
+            choices.forEach((d, idx) => {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = d;
+                if (idx === 0) opt.selected = true;
+                destSelect.appendChild(opt);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const initialOrigin = originSelect.value || "Manila";
+            populateDestinations(initialOrigin);
+        });
+
+        originSelect.addEventListener('change', function (e) {
+            populateDestinations(e.target.value);
+        });
+    })();
+    </script>
 
 </body>
 </html>

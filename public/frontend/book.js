@@ -106,9 +106,10 @@ if(onewayBtn && roundBtn){
   });
 }
 
+
 /* search -> show schedules modal */
 if(searchBtn){
-  searchBtn.addEventListener('click', ()=> {
+  searchBtn.addEventListener('click', async ()=> {
     const from = fromSelect ? fromSelect.value : '';
     const to = toSelect ? toSelect.value : '';
     const date = departDate ? departDate.value : '';
@@ -122,7 +123,27 @@ if(searchBtn){
     if(from === to){ alert('From and To cannot be the same'); return; }
 
     currentSearch = { from, to, date, rdate, adults:a, children:c, pax, prefBus };
-    openSchedulesForSearch(currentSearch);
+    
+    // Show loading state while getting dynamic pricing
+    showDynamicPricingLoading();
+    
+    try {
+      // Get dynamic pricing for 7 days
+      const pricingData = await getDynamicPricing(from, to, date, prefBus);
+      
+      // Update current search with pricing data
+      currentSearch.dynamicPricing = pricingData;
+      
+      // Open schedules with dynamic pricing
+      openSchedulesForSearch(currentSearch);
+      
+    } catch (error) {
+      console.error('Dynamic pricing error:', error);
+      alert('Warning: Could not load dynamic pricing. Using standard rates.');
+      
+      // Continue without dynamic pricing
+      openSchedulesForSearch(currentSearch);
+    }
   });
 }
 
@@ -158,29 +179,38 @@ function openSchedulesForSearch(search){
     return;
   }
 
+
   routeSchedules.forEach(sch=>{
     const reservedCount = state.reservations.filter(r=>r.scheduleId === sch.id).reduce((a,b)=>a+b.qty,0);
     const capacity = (typeof sch.capacity === 'number') ? sch.capacity : (sch.busType === 'deluxe' ? 20 : 40);
     const remaining = Math.max(0, capacity - reservedCount);
+
+    // Apply dynamic pricing if available
+    let scheduleWithPricing = {...sch};
+    if (search.dynamicPricing && search.dynamicPricing.length > 0) {
+      scheduleWithPricing = applyDynamicPricingToSchedule(scheduleWithPricing, search.dynamicPricing);
+    }
 
     const card = document.createElement('div');
     card.className = 'schedule-card';
 
     if (remaining <= 0) {
       card.classList.add('disabled-card');
+      const priceDisplay = search.dynamicPricing ? getDynamicPriceDisplay(scheduleWithPricing) : `₱${sch.price ?? '—'}`;
       card.innerHTML = `
         <div class="left">
           <strong>${sch.time}</strong>
-          <div class="muted">${search.date} • ${sch.busType === 'deluxe' ? 'Deluxe' : 'Regular'} • ₱${sch.price ?? '—'}</div>
+          <div class="muted">${search.date} • ${sch.busType === 'deluxe' ? 'Deluxe' : 'Regular'} • ${priceDisplay}</div>
         </div>
         <div class="mid">Seats left: <strong>0</strong></div>
         <div class="right fully-booked-text">Fully Booked</div>
       `;
     } else {
+      const priceDisplay = search.dynamicPricing ? getDynamicPriceDisplay(scheduleWithPricing) : `₱${sch.price ?? '—'}`;
       card.innerHTML = `
         <div class="left">
           <strong>${sch.time}</strong>
-          <div class="muted">${search.date} • ${sch.busType === 'deluxe' ? 'Deluxe' : 'Regular'} • ₱${sch.price ?? '—'}</div>
+          <div class="muted">${search.date} • ${sch.busType === 'deluxe' ? 'Deluxe' : 'Regular'} • ${priceDisplay}</div>
         </div>
         <div class="mid">Seats left: <strong>${remaining}</strong></div>
         <div class="right"><button class="btn-select" data-sid="${sch.id}" data-key="${key}">Select Seat</button></div>
@@ -575,5 +605,112 @@ document.querySelector(".close-register").addEventListener("click", () => {
   closeModal("registerModal");
 });
 
+
+
+/* Dynamic Pricing Functions */
+async function getDynamicPricing(from, to, startDate, busType) {
+  try {
+    // Calculate distance based on route (you can customize this)
+    const distanceMap = {
+      'Manila-Cebu': 937,
+      'Manila-Davao': 1452,
+      'Cebu-Davao': 518,
+      'Manila-Baguio': 250,
+      'Baguio-Cebu': 687,
+      'Cagayan de Oro-Manila': 905
+    };
+    
+    const routeKey = `${from}-${to}`;
+    const reverseRouteKey = `${to}-${from}`;
+    const distance = distanceMap[routeKey] || distanceMap[reverseRouteKey] || 300; // Default distance
+    
+    const params = new URLSearchParams({
+      from: from,
+      to: to,
+      start_date: startDate,
+      bus_type: busType || 'regular',
+      distance_km: distance.toString()
+    });
+    
+    const response = await fetch(`/api/dynamic-pricing?${params}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.pricing;
+    } else {
+      throw new Error(data.error || 'Failed to get dynamic pricing');
+    }
+  } catch (error) {
+    console.error('Dynamic pricing error:', error);
+    throw error;
+  }
+}
+
+function showDynamicPricingLoading() {
+  if (!scheduleList) return;
+  scheduleList.innerHTML = `
+    <div class="schedule-card">
+      <div class="left">
+        <strong>Loading Dynamic Pricing...</strong>
+        <div class="muted">Calculating 7-day demand-based pricing for your route</div>
+      </div>
+      <div class="mid">Please wait</div>
+      <div class="right">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  `;
+  showModal('modalSchedules');
+}
+
+function applyDynamicPricingToSchedule(schedule, dynamicPricing) {
+  // Find pricing for the specific date
+  const datePricing = dynamicPricing.find(p => p.date === schedule.date);
+  
+  if (datePricing) {
+    // Apply dynamic price and add pricing info
+    schedule.originalPrice = schedule.price;
+    schedule.price = datePricing.final_price;
+    schedule.dynamicPricingInfo = {
+      basePrice: datePricing.base_price,
+      demandScore: datePricing.demand_prediction,
+      isWeekend: datePricing.is_weekend,
+      isHoliday: datePricing.is_holiday,
+      priceBreakdown: datePricing.price_breakdown,
+      dayOfWeek: datePricing.day_of_week
+    };
+    
+    // Add price change indicator
+    if (schedule.originalPrice !== schedule.price) {
+      const changePercent = ((schedule.price - schedule.originalPrice) / schedule.originalPrice * 100).toFixed(1);
+      schedule.priceChange = changePercent > 0 ? `+${changePercent}%` : `${changePercent}%`;
+    }
+  }
+  
+  return schedule;
+}
+
+function getDynamicPriceDisplay(schedule) {
+  if (!schedule.dynamicPricingInfo) {
+    return `₱${schedule.price ?? '—'}`;
+  }
+  
+  const { demandScore, isWeekend, isHoliday, dayOfWeek } = schedule.dynamicPricingInfo;
+  
+  // Create price display with dynamic info
+  let priceHtml = `<span class="dynamic-price">₱${schedule.price}</span>`;
+  
+  // Add price change indicator
+  if (schedule.priceChange) {
+    const changeClass = schedule.priceChange.startsWith('+') ? 'price-up' : 'price-down';
+    priceHtml += ` <span class="price-change ${changeClass}">${schedule.priceChange}</span>`;
+  }
+  
+  // Add demand indicator
+  const demandClass = demandScore > 0.7 ? 'high-demand' : demandScore > 0.4 ? 'medium-demand' : 'low-demand';
+  priceHtml += ` <span class="demand-indicator ${demandClass}" title="Demand Level: ${(demandScore * 100).toFixed(0)}%">${isWeekend ? 'Weekend' : isHoliday ? 'Holiday' : dayOfWeek}</span>`;
+  
+  return priceHtml;
+}
 
 /* END of book.js */

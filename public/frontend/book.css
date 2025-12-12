@@ -10,6 +10,7 @@
   --seat-chosen:#008cff;
   --shadow: 0 20px 50px rgba(16,24,40,0.08);
   --btn-shadow: 0 12px 30px rgba(16,24,40,0.15);
+  --border: #eef2f7; /* added for consistent card/button borders */
 }
 
 /* reset & base */

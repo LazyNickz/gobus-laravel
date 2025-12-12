@@ -4,8 +4,11 @@
   <meta charset="utf-8">
   <title>Admin — Schedules | GoBus</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="{{url('frontend/admin.css')}}">
-  <script defer src="{{ asset('frontend/admin.js') }}"></script>
+  <!-- CSRF token so frontend JS can include it on requests -->
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="stylesheet" href="{{ url('frontend/admin.css') }}">
+
+  <script defer src="{{ asset('frontend/admin-new.js') }}"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 </head>
 <body onload="initSchedulesPage(); setupSidebar();">
@@ -15,8 +18,8 @@
 
   <div class="admin-wrap">
     <aside class="sidebar">
-  <div class="item" data-target="/admin/schedules" onclick="location.href='/admin/schedules'"><i class="fa fa-calendar"></i> Schedules</div>
-  <div class="item" data-target="/admin/reservations" onclick="location.href='/admin/reservations'"><i class="fa fa-list"></i> Reservations</div>
+      <div class="item active" data-target="/admin/schedules" onclick="location.href='/admin/schedules'"><i class="fa fa-calendar"></i> Schedules</div>
+      <div class="item" data-target="/admin/reservations" onclick="location.href='/admin/reservations'"><i class="fa fa-list"></i> Reservations</div>
       <div style="flex:1"></div>
       <div class="item" onclick="logoutAdmin()"><i class="fa fa-sign-out-alt"></i> Logout</div>
     </aside>
@@ -135,13 +138,22 @@
         <div style="display:flex;gap:12px;flex-wrap:wrap">
           <button id="autoGenerate" class="btn btn-primary">Generate schedules (preset hours)</button>
         </div>
+
+
+        <!-- RESULT AREA: server save feedback appears here -->
+        <div id="serverSaveResult" style="margin-top:12px; display:block;"></div>
       </div>
 
+      <!-- Existing Schedules Section -->
       <div class="card">
-        <h3>Schedules Overview</h3>
-        <div id="schedulesOverview">
-          <!-- grouped schedule entries will appear here -->
-        </div>
+        <h3>Existing Schedules</h3>
+        <div id="existingSchedules"></div>
+      </div>
+
+      <!-- Schedule Groups Overview -->
+      <div class="card">
+        <h3>Schedule Groups Overview</h3>
+        <div id="schedulesOverview"></div>
       </div>
 
       <div class="legend">

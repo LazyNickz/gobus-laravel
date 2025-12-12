@@ -45,5 +45,16 @@ class DemoSeeder extends Seeder {
             ['name'=>'Baguio','city'=>'Baguio','created_at'=>now(),'updated_at'=>now()],
             ['name'=>'Iloilo','city'=>'Iloilo','created_at'=>now(),'updated_at'=>now()],
         ]);
+
+        // Insert admin@gobus.local / admin123 if not exists
+        DB::table('admins')->updateOrInsert(
+            ['email' => 'admin@gobus.local'],
+            [
+                'name' => 'Admin',
+                'password' => Hash::make('admin123'),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
     }
 }

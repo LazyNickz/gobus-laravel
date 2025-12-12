@@ -1,9 +1,8 @@
+
 // admin.js — grouped overview + preset-times generator + cleared inputs + fixed event wiring
 
 // constants
 const STORAGE_KEY = 'gobus_demo';
-const ADMIN_USER = 'admin@gobus.local';
-const ADMIN_PASS = 'admin123';
 
 // ---------- state helpers ----------
 function loadState() {
@@ -72,14 +71,30 @@ function loadState() {
 }
 function saveState(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
 
+
 // ---------- auth helpers ----------
 function setAdminSession(){ sessionStorage.setItem('gobus_admin_logged','1'); }
 function clearAdminSession(){ sessionStorage.removeItem('gobus_admin_logged'); }
+
 function requireAdminOrRedirect(){
-  if (sessionStorage.getItem('gobus_admin_logged') !== '1') {
-    if (!location.pathname.endsWith('admin-login.html')) {
-      location.href = 'admin-login.html';
-    }
+  // Check both sessionStorage (for demo) and server-side session
+  const isLoggedIn = sessionStorage.getItem('gobus_admin_logged') === '1';
+  if (!isLoggedIn) {
+    // Try to check server session via AJAX
+    fetch('/admin/schedules', { method: 'GET', credentials: 'same-origin' })
+      .then(resp => {
+        if (resp.status === 302 || resp.redirected) {
+          // Redirected to login, so not authenticated
+          window.location.href = '/admin-login';
+        } else {
+          // Server session exists, set local session
+          setAdminSession();
+        }
+      })
+      .catch(() => {
+        // Network error, assume not logged in
+        window.location.href = '/admin-login';
+      });
   }
 }
 
@@ -112,14 +127,16 @@ function formatTimeToAMPM(timeStr) {
     return `${h}:${m.toString().padStart(2, '0')} ${ampm}`;
 }
 
+
 /* ---------- LOGIN ---------- */
+
 function handleLoginForm(e){
   e.preventDefault();
-  const rawEmail = document.getElementById('loginEmail')?.value || '';
+  const rawEmail = document.getElementById('email')?.value || '';
   const email = sanitizeEmail(rawEmail);
-  const pass = (document.getElementById('loginPass')?.value || '');
-  const emErr = document.getElementById('loginEmailErr');
-  const passErr = document.getElementById('loginPassErr');
+  const pass = (document.getElementById('password')?.value || '');
+  const emErr = document.getElementById('emailErr');
+  const passErr = document.getElementById('passwordErr');
   if(emErr) emErr.textContent=''; if(passErr) passErr.textContent='';
 
   if (!email) { if(emErr) emErr.textContent = 'Email required'; return; }
@@ -127,13 +144,11 @@ function handleLoginForm(e){
   if (!pass) { if(passErr) passErr.textContent = 'Password required'; return; }
   if (!isValidPassword(pass)) { if(passErr) passErr.textContent = 'Password must be at least 6 characters'; return; }
 
-  // compare with admin constants (normalize)
-  if (email === (ADMIN_USER || '').toLowerCase() && pass === ADMIN_PASS){
-    setAdminSession();
-    location.href = '/admin/schedules';
-  } else {
-    if(passErr) passErr.textContent = 'Invalid admin credentials';
-  }
+
+
+  // Use server-side authentication - submit the form normally
+  // This will be handled by Laravel's server-side authentication
+  document.getElementById('loginForm').submit();
 }
 
 // small helper to get a query param
@@ -600,7 +615,6 @@ function cleanupEmptyGroups(){
 
 /* ---------- SCHEDULES PAGE init (wires UI) ---------- */
 function initSchedulesPage(){
-  requireAdminOrRedirect();
 
   // elements
   const startInput = document.getElementById('schedDate');
@@ -633,11 +647,11 @@ function initSchedulesPage(){
     if(!startInput.value) startInput.value = formatDateISO(dt);
   }
 
+
+
   // render UI pieces
   renderTimes();
   renderActiveDays();
-  renderExisting();
-  renderOverview();
 
   // show / hide price-capacity inputs based on bus choice
   function updateGenInputsVisibility(){
@@ -689,7 +703,7 @@ function initSchedulesPage(){
 
   // Auto-generate using PRESET TIMES (timesList) and respecting activeDays
   if(autoGenerateBtn){
-    autoGenerateBtn.addEventListener('click', ()=>{
+    autoGenerateBtn.addEventListener('click', async ()=>{
       const sState = loadState();
       const start = startInput ? startInput.value : '';
       const end = endInput ? endInput.value : '';
@@ -744,6 +758,7 @@ function initSchedulesPage(){
       const groupMeta = { id: groupId, from, to, start, end: end || start, createdAt: new Date().toISOString() };
 
       let created = 0;
+      const createdForServer = []; // collect payloads to POST to server
       dates.forEach(dateStr=>{
         const key = keyFor(dateStr, from, to);
         sState.schedules[key] = sState.schedules[key] || [];
@@ -753,15 +768,34 @@ function initSchedulesPage(){
             // prevent duplicate: same time + busType
             if(sState.schedules[key].some(x=> x.time === timeStr && x.busType === bt)) return;
             const id = uid('s');
+            const cap = capVals[bt] || (bt==='deluxe' ? sState.defaults.deluxe : sState.defaults.regular);
+            const price = priceVals[bt] || 0;
             sState.schedules[key].push({
               id,
               time: timeStr,
               busType: bt,
               tripType: 'single',
-              price: priceVals[bt] || 0,
-              capacity: capVals[bt] || (bt==='deluxe' ? sState.defaults.deluxe : sState.defaults.regular)
+              price: price,
+              capacity: cap
             });
             created++;
+
+
+            // prepare server payload: adapt to your ScheduleController expected fields
+            createdForServer.push({
+              route_from: from,
+              route_to: to,
+              departure_time: `${dateStr} ${timeStr}:00`,
+              arrival_time: null,
+              bus_number: null,
+              seats: cap,
+              available_seats: cap,
+              fare: price,
+              status: 'active',
+              bus_type: bt,
+              trip_type: 'single',
+              capacity: cap
+            });
           });
         });
       });
@@ -788,7 +822,26 @@ function initSchedulesPage(){
         renderExisting();
         renderOverview();
         updateGenInputsVisibility();
-        alert(`Created ${created} schedule(s) across ${dates.length} active date(s).`);
+
+        // Attempt to persist to server (non-blocking)
+        if(createdForServer.length){
+          // send in batches to avoid too many simultaneous requests (simple split)
+          const batchSize = 20;
+          let serverOk = 0, serverFailed = 0;
+          for(let i=0;i<createdForServer.length;i+=batchSize){
+            const batch = createdForServer.slice(i, i+batchSize);
+            try {
+              const res = await postSchedulesBatch(batch);
+              serverOk += res.ok;
+              serverFailed += res.failed;
+            } catch(e){
+              serverFailed += batch.length;
+            }
+          }
+          alert(`Created ${created} schedule(s) locally across ${dates.length} active date(s).\nServer save: ${serverOk} succeeded, ${serverFailed} failed.`);
+        } else {
+          alert(`Created ${created} schedule(s) locally across ${dates.length} active date(s).`);
+        }
       } else {
         alert('No new schedules were created (duplicates or none matched).');
       }
@@ -848,6 +901,7 @@ function handleAddSchedule(){
     dates.push(start);
   }
 
+  const createdForServer = [];
   dates.forEach(date=>{
     const from = document.getElementById('schedFrom').value.trim();
     const to = document.getElementById('schedTo').value.trim();
@@ -867,6 +921,18 @@ function handleAddSchedule(){
       price,
       capacity
     });
+
+    createdForServer.push({
+      route_from: from,
+      route_to: to,
+      departure_time: `${date} ${time}:00`,
+      arrival_time: null,
+      bus_number: null,
+      seats: capacity,
+      available_seats: capacity,
+      fare: price,
+      status: 'active'
+    });
   });
 
   saveState(sState);
@@ -874,6 +940,13 @@ function handleAddSchedule(){
   renderExisting();
   renderOverview();
   alert('Schedule(s) added.');
+
+  // Try to save created schedules to server
+  if(createdForServer.length){
+    postSchedulesBatch(createdForServer).then(res=>{
+      alert(`Server save: ${res.ok} succeeded, ${res.failed} failed (of ${res.sent}).`);
+    }).catch(()=>{ alert('Failed to send schedules to server.'); });
+  }
 }
 
 /* ---------- RESERVATIONS PAGE (full working version) ---------- */
@@ -1249,9 +1322,128 @@ window.openGroupModal = openGroupModal;
 window.closeGroupModal = closeGroupModal;
 // Logout: clear the demo admin session and navigate back to the login route (/)
 // If you use Laravel server-side auth later, replace this with a POST to /logout.
+
 window.logoutAdmin = function(){
   clearAdminSession();
-  // navigate to the canonical login route (root)
-  location.href = '/';
+  // navigate to the admin login route
+  location.href = '/admin-login';
 };
+
+// small UI helper: show server save result in admin schedules page
+function showServerSaveResult(html) {
+  let el = document.getElementById('serverSaveResult');
+  if(!el) {
+    try { alert(html.replace(/<[^>]*>/g,'')); } catch(e){}
+    return;
+  }
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+
+// store last batch globally for debug retry
+window._lastScheduleBatch = null;
+
+// dev-only helper: try saving schedules via a GET debug route (no CSRF) — only for local testing
+window.debugTrySave = async function(){
+  const batch = window._lastScheduleBatch || [];
+  if(!batch.length) return alert('No batch available to retry.');
+  let ok = 0, failed = 0;
+  for(const p of batch){
+    try {
+      const qs = new URLSearchParams({
+        route_from: p.route_from || '',
+        route_to: p.route_to || '',
+        departure_time: p.departure_time || '',
+        arrival_time: p.arrival_time || '',
+        bus_number: p.bus_number || '',
+        seats: p.seats != null ? String(p.seats) : '0',
+        available_seats: p.available_seats != null ? String(p.available_seats) : (p.seats != null ? String(p.seats) : '0'),
+        fare: p.fare != null ? String(p.fare) : '0',
+        status: p.status || 'active'
+      }).toString();
+      const resp = await fetch('/debug/add-schedule?' + qs, { method: 'GET', credentials: 'same-origin' });
+      if(resp.ok){
+        ok++;
+      } else {
+        failed++;
+      }
+    } catch(e) { failed++; }
+  }
+  alert(`Debug save complete: ${ok} succeeded, ${failed} failed. Check DB.`);
+};
+
+
+// helper to POST many schedules to admin bulk endpoint (returns {sent,ok,failed,results})
+async function postSchedulesBatch(payloads){
+  if(!Array.isArray(payloads) || payloads.length === 0) return { sent: 0, ok: 0, failed: 0, results: [] };
+
+  // save for debug retry if needed
+  window._lastScheduleBatch = payloads.slice();
+
+  const token = getCsrfToken();
+  
+  try {
+    const resp = await fetch('/admin/schedules/bulk', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': token || ''
+      },
+      body: JSON.stringify(payloads)
+    });
+
+    let parsed = null;
+    let text = null;
+    try {
+      text = await resp.text();
+      parsed = text ? JSON.parse(text) : null;
+    } catch(e){ parsed = null; }
+
+    const success = resp.ok;
+    
+    // build HTML summary
+    const summaryParts = [];
+    if(success){
+      const created = parsed?.created || payloads.length;
+      summaryParts.push(`<div style="padding:8px;border-radius:6px;background:#e6ffea;border:1px solid #bff0c4">`);
+      summaryParts.push(`<strong>Server save:</strong> Successfully saved ${created} schedule(s) to database!`);
+      summaryParts.push(`</div>`);
+    } else {
+      summaryParts.push(`<div style="padding:8px;border-radius:6px;background:#ffe6e6;border:1px solid #ffb3b3">`);
+      summaryParts.push(`<strong>Server save:</strong> Failed to save schedules`);
+      if(parsed?.error){
+        summaryParts.push(`<div style="margin-top:6px;color:#b33">Error: ${parsed.error}</div>`);
+      }
+      summaryParts.push(`<div style="margin-top:6px;font-size:13px;color:#333">Please make sure you are logged in as an admin. If you haven't logged in yet, <a href="/admin-login" target="_blank">click here to login</a>.</div>`);
+      summaryParts.push(`</div>`);
+    }
+
+    showServerSaveResult(summaryParts.join(''));
+
+    return { 
+      sent: payloads.length, 
+      ok: success ? 1 : 0, 
+      failed: success ? 0 : 1, 
+      results: [{ ok: success, status: resp.status, body: parsed || text }]
+    };
+  } catch(err) {
+    const errorMsg = err.message || String(err);
+    const summaryParts = [];
+    summaryParts.push(`<div style="padding:8px;border-radius:6px;background:#ffe6e6;border:1px solid #ffb3b3">`);
+    summaryParts.push(`<strong>Server save:</strong> Network error - ${errorMsg}`);
+    summaryParts.push(`<div style="margin-top:6px;font-size:13px;color:#333">Please check your internet connection and make sure you are logged in as an admin.</div>`);
+    summaryParts.push(`</div>`);
+    showServerSaveResult(summaryParts.join(''));
+    
+    return { 
+      sent: payloads.length, 
+      ok: 0, 
+      failed: payloads.length, 
+      results: [{ ok: false, err: errorMsg }]
+    };
+  }
+}
 
