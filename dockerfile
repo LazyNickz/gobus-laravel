@@ -27,6 +27,4 @@ COPY deploy/supervisor.conf /etc/supervisor/conf.d/supervisor.conf
 
 EXPOSE 80
 
-CMD ["supervisord", "-n"]
-
 ENTRYPOINT ["./docker-entrypoint.sh"]
