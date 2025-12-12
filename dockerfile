@@ -1,12 +1,16 @@
-# Base image
+# Use official PHP 8.4 FPM image
 FROM php:8.4-fpm
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Install dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    git unzip libzip-dev libpng-dev libonig-dev \
+    git \
+    unzip \
+    libzip-dev \
+    libpng-dev \
+    libonig-dev \
     && docker-php-ext-install pdo pdo_mysql zip
 
 # Install Composer
@@ -17,16 +21,14 @@ RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
 # Copy application files
 COPY . .
 
-# Set permissions
+# Set permissions for Laravel storage and cache
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-# Install PHP dependencies
+# Install PHP dependencies without dev packages
 RUN composer install --no-dev --optimize-autoloader
 
-
-
-# Expose port (Railway uses 8080)
+# Expose port 8080 for Cloud Run
 EXPOSE 8080
 
-# Start Laravel server using PORT env variable
-CMD ["sh", "-c", "php artisan serve --host=mainline.proxy.rlwy.net --port=${PORT:-53469}"]
+# Start PHP-FPM
+CMD ["php-fpm"]
