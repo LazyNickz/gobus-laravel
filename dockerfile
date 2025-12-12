@@ -1,44 +1,27 @@
-# Base PHP image with Apache
-FROM php:8.4-apache
-
-# Set working directory
-WORKDIR /var/www/html
+FROM php:8.2-fpm
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    libzip-dev \
-    libonig-dev \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libpq-dev \
-    curl \
-    && docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl gd
+    git unzip libpq-dev libonig-dev libzip-dev libpng-dev \
+    nginx supervisor
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
+# Install PHP extensions
+RUN docker-php-ext-install pdo pdo_mysql zip
 
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-# Copy Laravel app
+# Copy app
+WORKDIR /var/www/html
 COPY . .
 
-# Install Laravel dependencies
-RUN composer install --no-dev --optimize-autoloader
+# Install composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# Nginx config
+COPY deploy/nginx.conf /etc/nginx/nginx.conf
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Supervisor config
+COPY deploy/supervisor.conf /etc/supervisor/conf.d/supervisor.conf
 
-# Expose port
 EXPOSE 80
 
-# Start container
-CMD ["docker-entrypoint.sh"]
+CMD ["supervisord", "-n"]
