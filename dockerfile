@@ -22,8 +22,5 @@ COPY deploy/nginx.conf /etc/nginx/nginx.conf
 # Supervisor config
 COPY deploy/supervisor.conf /etc/supervisor/conf.d/supervisor.conf
 
-
-
-
 EXPOSE 80
 
