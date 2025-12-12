@@ -27,4 +27,3 @@ COPY deploy/supervisor.conf /etc/supervisor/conf.d/supervisor.conf
 
 EXPOSE 80
 
-ENTRYPOINT ["./docker-entrypoint.sh"]
