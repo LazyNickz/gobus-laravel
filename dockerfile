@@ -1,49 +1,31 @@
-# Stage 1: Base PHP-FPM image
 FROM php:8.4-fpm
 
-# Arguments
-ARG APP_ENV=production
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    git unzip libzip-dev libpng-dev libonig-dev \
+    && docker-php-ext-install pdo pdo_mysql zip
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    libpq-dev \
-    libonig-dev \
-    libzip-dev \
-    libpng-dev \
-    nginx \
-    supervisor \
-    curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql zip gd
-
+# Copy composer files and install
 COPY composer.json composer.lock ./
+RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
+    && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
+    && php -r "unlink('composer-setup.php');"
 RUN composer install --no-dev --optimize-autoloader
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Copy application code
+# Copy app files
 COPY . .
 
-# Install PHP dependencies
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+# Fix permissions
+RUN chown -R www-data:www-data storage bootstrap/cache
 
-# Copy Nginx and Supervisor configuration
-COPY deploy/nginx.conf /etc/nginx/nginx.conf
-COPY deploy/supervisor.conf /etc/supervisor/conf.d/supervisor.conf
+# Generate key
+RUN php artisan key:generate
 
-# Make storage and bootstrap/cache writable
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-
-# Expose port (Railway sets $PORT)
+# Expose port 8080
 EXPOSE 8080
 
-# Run Supervisor to manage Nginx + PHP-FPM
-CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisor.conf"]
+# Start Laravel built-in server
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
