@@ -1,13 +1,12 @@
 {
-    "$schema": "https://openapi.vercel.sh/vercel.json",
-    "outputDirectory": "public",
-    "functions": {
-            "api/lambda.php":{
-                "runtime": "vercel-php@0.7.4"
-            }
-
-    },
-    "rewrites": [
-        {"source": "/(.*)", "destination": "/api/lambda.php"}
-    ]
+  "builds": [
+    {
+      "src": "vite.config.js",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "public/build" }
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/index.php" }
+  ]
 }
