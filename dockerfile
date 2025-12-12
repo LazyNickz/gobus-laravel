@@ -23,8 +23,7 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Generate Laravel APP_KEY
-RUN php artisan key:generate
+
 
 # Expose port (Railway uses 8080)
 EXPOSE 8080
