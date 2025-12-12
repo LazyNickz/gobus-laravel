@@ -2,7 +2,7 @@
 set -e
 
 # Navigate to Laravel root
-cd /var/www/html
+cd /database/migrations
 
 echo "Running migrations in sequence..."
 
