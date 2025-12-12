@@ -8,6 +8,6 @@
 
     },
     "rewrites": [
-        {"source": "/(.*)", "destination": "/api/lambda.php"}
+        {"source": "/(.*)", "destination": "/public/index.php"}
     ]
 }
