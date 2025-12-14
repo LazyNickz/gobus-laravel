@@ -211,14 +211,8 @@
                         <div class="text-lg font-semibold text-gray-900">1 Adult</div>
                     </div>
                 </div>
-                <div class="lg:mt-0 mt-4 text-center lg:text-right">
-                    <a href="{{ url('/user/reservations') }}" class="btn-secondary px-4 py-2 text-sm mr-4">
-                        <i class="fas fa-arrow-left mr-2"></i>Back to Search
-                    </a>
-                    <a href="{{ url('/trip-selection?' . http_build_query(request()->only(['origin', 'destination', 'depart_date', 'adults']))) }}" class="btn-primary px-6 py-2 text-sm">
-                        <i class="fas fa-bus mr-2"></i>View Available Trips
-                    </a>
-                </div>
+
+
             </div>
         </div>
 
