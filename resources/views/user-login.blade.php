@@ -189,6 +189,14 @@
           <div class="text-gray-600">User access — sign in to continue</div>
         </div>
 
+
+        <!-- show server-side success message (e.g., after registration) -->
+        @if(session('success'))
+          <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
+            {{ session('success') }}
+          </div>
+        @endif
+
         <!-- show server-side login error -->
         @if($errors->has('login'))
           <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">

@@ -8,6 +8,7 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+
     // web POST register (form)
     public function register(Request $r)
     {
@@ -23,11 +24,8 @@ class AuthController extends Controller
             'password' => Hash::make($data['password']),
         ]);
 
-        $r->session()->put('gobus_user_logged', true);
-        $r->session()->put('gobus_user_email', $user->email);
-        $r->session()->put('gobus_user_name', $user->name);
-
-        return redirect('/user/reservations');
+        // Remove auto-login - redirect to login page instead
+        return redirect('/user-login')->with('success', 'Registration successful! Please login with your credentials.');
     }
 
     // web POST login (form)
@@ -67,6 +65,7 @@ class AuthController extends Controller
         return response()->json(['ok' => true, 'redirect' => '/user/reservations']);
     }
 
+
     // AJAX JSON register
     public function ajaxRegister(Request $r)
     {
@@ -82,10 +81,7 @@ class AuthController extends Controller
             'password' => Hash::make($data['password']),
         ]);
 
-        $r->session()->put('gobus_user_logged', true);
-        $r->session()->put('gobus_user_email', $user->email);
-        $r->session()->put('gobus_user_name', $user->name);
-
-        return response()->json(['ok' => true, 'redirect' => '/user/reservations']);
+        // Remove auto-login - redirect to login page instead
+        return response()->json(['ok' => true, 'redirect' => '/user-login', 'message' => 'Registration successful! Please login with your credentials.']);
     }
 }
