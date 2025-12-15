@@ -22,7 +22,7 @@ Recommended local stacks:
 
 1️⃣ Clone the Repository
 
-git clone https://github.com/AlimbuyogAbeer/GoBus.git
+git clone https://github.com/LazyNickz/gobus-laravel.git
 cd GoBus
 
 
