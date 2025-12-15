@@ -205,6 +205,57 @@ Developed by GoBus Team
 
 This project is for educational and academic use.
 
+LIBRARY WE USE
+
+. Backend (PHP / Laravel)
+Found in composer.json
+
+Core Dependencies:
+
+laravel/framework (^12.0): The main web application framework.
+guzzlehttp/guzzle (^7.10): A PHP HTTP client used for making requests (likely to communicate with your ML API).
+bref/bref (^2.4): Tools for running PHP on serverless platforms (like AWS Lambda).
+laravel/tinker (^2.10.1): Interactive REPL for exploring the application.
+php (^8.2): The programming language version required.
+Development & Testing Dependencies:
+
+phpunit/phpunit (^11.5.3): Testing framework.
+fakerphp/faker (^1.23): Generates fake data for seeding.
+laravel/sail (^1.41): Docker interface for local development.
+laravel/pint (^1.24): Code style fixer.
+mockery/mockery (^1.6): Mock object framework for testing.
+nunomaduro/collision (^8.6): Error handling and reporting.
+laravel/pail (^1.2.2): Tailing application logs.
+2. Frontend (JavaScript / CSS)
+Found in package.json
+
+Build Tools & Libraries:
+
+tailwindcss (^4.0.0): A utility-first CSS framework for styling.
+vite (^7.0.7): Modern frontend build tool and development server.
+laravel-vite-plugin (^2.0.0): Integration between Laravel and Vite.
+@tailwindcss/vite (^4.0.0): Vite plugin for Tailwind CSS.
+axios (^1.11.0): Promise-based HTTP client for the browser (used for AJAX requests).
+concurrently (^9.0.1): Utility to run multiple commands simultaneously (used in dev scripts).
+3. Machine Learning API (Python)
+Found in ml-api/requirements.txt
+
+Web API Framework:
+
+fastapi (==0.95.2): High-performance web framework for building the ML API.
+uvicorn[standard] (==0.22.0): ASGI web server implementation for FastAPI.
+python-multipart (==0.0.6): Required for form parsing in FastAPI.
+Data Science & Machine Learning:
+
+scikit-learn (==1.2.2): The machine learning library used for the Random Forest model.
+pandas (==1.5.3): Data manipulation and analysis library.
+numpy (==1.23.5): Fundamental package for scientific computing.
+joblib (==1.2.0): Used for saving and loading the trained models (.pkl files).
+Database:
+
+sqlalchemy (==1.4.46): SQL toolkit and Object-Relational Mapper (ORM).
+pymysql (==1.0.2): MySQL driver for Python (allowing the ML API to connect to your database).
+
 
 SCREENSHOTS
 <img width="3420" height="2224" alt="598102526_1586539855687872_3548381869389143553_n" src="https://github.com/user-attachments/assets/7a49ccd7-e8a4-41c5-9a37-40ef91e2768f" />
